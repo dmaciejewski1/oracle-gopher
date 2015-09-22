@@ -59,7 +59,7 @@ ln -s libocci.dylib.11.1 libocci.dylib
 
  //Set Foraging Instructions via the Garden Object:
  var garden = {
-         dbStatement     : "SELECT dummy FROM DUAL WHERE dummy = :DummyValue", //mandatory
+         dbStatement     : "SELECT dummy FROM dual WHERE dummy = :DummyValue", //mandatory
          outputFormat    : "array", //not mandatory.  will use default if not explicitly set.
          maxRowsReturned : 100, //not mandatory.  will use default if not explicitly set.
          bindVariables   : {"DummyValue" : "X"} //not mandatory.  use in conjunction with dbStatement when bind variables are present.
