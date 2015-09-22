@@ -1,0 +1,74 @@
+{
+  "name": "oracle-gopher",
+  "version": "0.1.2",
+  "description": "Boilerplate Node.js middleware that facilitates connections and transactions with Oracle databases.",
+  "author": {
+    "name": "David Maciejewski"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dmaciejewski1/oracle-gopher.git"
+  },
+  "license": "MIT",
+  "keywords": [
+    "node.js",
+    "node",
+    "data",
+    "database",
+    "Db",
+    "DB",
+    "db",
+    "layer",
+    "warehouse",
+    "information",
+    "metrics",
+    "connect",
+    "connection",
+    "connectivity",
+    "business",
+    "intelligence",
+    "mine",
+    "mining",
+    "SQL",
+    "PLSQL",
+    "PL/SQL",
+    "select",
+    "insert",
+    "statement",
+    "statements",
+    "query",
+    "queries",
+    "querying",
+    "clause",
+    "clauses",
+    "ETL",
+    "client",
+    "add-on",
+    "plugin",
+    "plug-in",
+    "tool",
+    "driver",
+    "library",
+    "module",
+    "oracledb",
+    "oracle",
+    "ora",
+    "OCI",
+    "10g",
+    "11g",
+    "12c"
+  ],
+  "dependencies": {
+    "oracledb": "^1.0.0"
+  },
+  "devDependencies": {
+    "mocha": "^2.2.5",
+    "chai": "^3.2.0"
+  },
+  "engines": {
+    "node": ">=0.10.28 <=0.12.7"
+  },
+  "scripts": {
+    "test": "mocha"
+  }
+}
