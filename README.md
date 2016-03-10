@@ -1,9 +1,10 @@
 # oracle-gopher
+Maintain, Organize, Retrieve and Send your database statements from the middle of the stack.
 
-Boilerplate Node.js middleware that facilitates connections and transactions with Oracle databases.
+Gopher keeps track of your Database Connection and Transaction Configurations while giving you handy data output options, as well as valuable feedback about the process.
 
 ## Requirements
-* Connects Node.js 0.10, Node.js 0.12
+* Node.js 5.6.0
 * Oracle Instant Client
 
 ## Setup
@@ -19,18 +20,18 @@ From a terminal window:
 
 1) Unzip files:
 ```
-unzip instantclient-basic-macos.x64-11.2.0.4.0.zip -d /oracle
-unzip instantclient-sdk-macos.x64-11.2.0.3.0.zip -d /oracle
+unzip instantclient-basic-macos.x64-11.2.0.4.0.zip -d ~/oracle
+unzip instantclient-sdk-macos.x64-11.2.0.3.0.zip -d ~/oracle
 ```
 2) Update your .bashrc file by appending and saving the following block of code:
 ```
 ##### Oracle Instant Client 11.2 #####
-OCI_HOME=/oracle/instantclient_11_2
-OCI_LIB_DIR=$OCI_HOME
-OCI_INC_DIR=$OCI_HOME/sdk/include
-OCI_INCLUDE_DIR=$OCI_HOME/sdk/include
-OCI_VERSION=11
-DYLD_LIBRARY_PATH=$OCI_LIB_DIR
+ export OCI_HOME=~/oracle/instantclient_11_2
+ export OCI_LIB_DIR=~/oracle/lib
+ export OCI_INC_DIR=$OCI_HOME/sdk/include
+ export OCI_INCLUDE_DIR=$OCI_HOME/sdk/include
+ export OCI_VERSION=11
+ export DYLD_LIBRARY_PATH=$OCI_LIB_DIR
 ```
 3) Create the following symbolic links from within your Instant Client directory (e.g. /oracle/instantclient_11_2):
 ```
@@ -39,39 +40,353 @@ ln -s libclntsh.dylib.11.1 libclntsh.dylib
 ln -s libocci.dylib.11.1 libocci.dylib
 ```
 4) Restart your Terminal application
-
-#### *C) oracle-gopher Installation*
+#### *C) Install Gopher*
 ```
  npm install oracle-gopher
 ```    
+#### *D) Configure Gopher*
+1) Create a Connection library (or Libraries):
+```
+[
+  {"myDatabase-Prod" :{
+        "user"                 : "me",
+        "password"             : "myProdPassword",
+        "host"                 : "databases.arecool.com",
+        "port"                 : 12345,
+        "service"              : "databases.arecool.com"
+  }},
+  {"myDatabase-Dev" :{
+        "user"                 : "me",
+        "password"             : "myDevPassword",
+        "host"                 : "propvd1.gene.com",
+        "port"                 : 12345,
+        "SID"                  : "propvd1.gene.com"
+  }}
+]
+
+```
+2) Create a Transaction Library (or Libraries) and setup transaction defaults:
+```
+[
+  {"db-Tables" :{
+    "dbStatement"     : "SELECT a.object_name AS \"TABLE\" FROM sys.user_objects a INNER JOIN sys.user_all_tables b ON a.object_name = b.table_name WHERE a.object_type = 'TABLE' ORDER BY b.table_name",
+    "zeroRowMessage"  : "No Tables found",
+    "outputFormat"    : "array"
+    "responseOutput"  : ["connection","error","dbResponse","metaData","metrics"]
+  }},
+  {"db-Columns" :{
+      "dbStatement"     : "SELECT column_name AS \"COLUMN\" FROM sys.user_tab_columns WHERE lower(table_name) = lower(:tableName)",
+      "bindVariables"   : {"tableName":"dual"},
+      "zeroRowMessage"  : "No columns found",
+      "outputFormat"    : "array",
+      "responseOutput"  : ["connection","error","dbResponse","metaData","metrics"]
+
+  }}
+]
+
+```
+3) Assign Transaction Libraries to Individual Connections:
+```
+[
+  {"myDatabase-Prod" :{
+        "user"                 : "prodMe",
+        "password"             : "myProdPassword",
+        "host"                 : "databases.areCool.com",
+        "port"                 : 12345,
+        "service"              : "databases.areCool.com",
+        "transactionLibraries" : ["./libraries/transaction/oracle-dictionary-transactions.json",
+                                  "./libraries/transaction/finance-production-transactions.json"]
+  }},
+  {"myDatabase-Dev" :{
+        "user"                 : "devMe",
+        "password"             : "myDevPassword",
+        "host"                 : "devDatabases.areCool2.com",
+        "port"                 : 12345,
+        "SID"                  : "devDatabases.areCool2.com",
+        "transactionLibraries" : ["./libraries/transaction/oracle-dictionary-transactions.json",
+                                  "./libraries/transaction/finance-development-transactions.json"]
+  }}
+]
+
+```
 ## Usage
-#### *A) Example*
+### *A) A Simple Example:*
  ```javasript
+ "use strict";
+
  var Gopher = require('oracle-gopher');
- var tunnel = {
-         user             : "USERNAME",   //mandatory
-         password         : "PASSWORD",   //mandatory
-         connectString    : "HOST:PORT/SERVICE"  //mandatory
-     };
- var gopher = new Gopher(tunnel);
 
- /*-------------------------------Foraging for Data-------------------------------*/
+ const CONNECTIONS = ['./libraries/connection/myDatabase-connections.json',
+                      './libraries/connection/corporate-connections.json',
+                      './libraries/connection/finance-connections.json'];
 
- //Set Foraging Instructions via the Garden Object:
- var garden = {
-         dbStatement     : "SELECT dummy FROM dual WHERE dummy = :DummyValue", //mandatory
-         outputFormat    : "array", //not mandatory.  will use default if not explicitly set.
-         maxRowsReturned : 100, //not mandatory.  will use default if not explicitly set.
-         bindVariables   : {"DummyValue" : "X"} //not mandatory.  use in conjunction with dbStatement when bind variables are present.
-     };
+//------------------------------------------------------------------------------//
+//            Create a Gopher and Configure it's Transaction Properties         //
+//------------------------------------------------------------------------------//
 
- // Send Gopher on it's way to return with data...
- gopher.forage(garden,
-     function(err,result){
-         if (err) {
-             return console.log(err);
+   var runGopher = function(dbConnection,transactionName,callback){
+
+     let transactionObject = {transaction : transactionName};
+
+     new Gopher({"tunnel":dbConnection,"tunnelLibraries":CONNECTIONS})
+       .run(transactionObject,
+         function(err,res){
+           if (err)  {
+             return callback(err,res);
+           }
+           return callback(err,res);
          }
-         return console.log(result);
+       );
+   }
+
+//------------------------------------------------------------------------------//
+//                          Send Gopher on it's way                             //
+//------------------------------------------------------------------------------//
+
+   runGopher('myDatabase-Prod','db-Tables',
+     function(gophErr, gophRes){
+       if(gophErr){console.log(gophRes);}
+     console.log(gophRes)
      }
- );
- ```   
+   );
+
+ ```  
+ ### *B) Build a simple abstraction*
+ #### 1) Create a gopher-schema.js file and load it up with paths to your connection libraries, and build/standardize your transaction configuration types
+
+  ```javasript
+  "use strict";
+
+  var Gopher = require('oracle-gopher');
+
+
+  //----------------------------------------------------------------------------//
+  //   Assign Gardens (Gopher vernacular for Db Connection Configurations)      //
+  //----------------------------------------------------------------------------//
+
+  const CONNECTIONS = ['./libraries/connection/myDatabase-connections.json',
+                       './libraries/connection/corporate-connections.json',
+                       './libraries/connection/finance-connections.json'];
+
+
+
+ //-----------------------------------------------------------------------------//
+ //     Create Different Gophers (i.e. a Gopher Schema) and Configure their     //
+ //     Transaction Properties                                                  //
+ //-----------------------------------------------------------------------------//
+
+   //--------------------Without Bind Variables--------------------
+
+    exports.run = function(dbConnection,transactionName,callback){
+
+      let transactionObject = {transaction : transactionName};
+
+      new Gopher({"tunnel":dbConnection,"tunnelLibraries":CONNECTIONS})
+        .run(transactionObject,
+          function(err,res){
+            if (err)  {return callback(err,res);}
+            return callback(err,res);
+          }
+        );
+    }
+
+   //----------------------With Bind Variables---------------------
+
+    exports.runWBindVariables = function(dbConnection,transactionName,bindVariables,callback){
+
+      let transactionObject = {
+        transaction        : transactionName,
+        bindVariables      : bindVariables
+      };
+
+      new Gopher({"tunnel":dbConnection,"tunnelLibraries":CONNECTIONS})
+        .run(transactionObject,
+          function(err,res){
+            if (err)  {return callback(err,res);}
+            return callback(err,res);
+          }
+        );
+    }
+
+   //---------------------------Show SQL---------------------------
+
+    exports.showSql = function(dbConnection,transactionName,callback){
+
+      let transactionObject = {
+        transaction        : transactionName,
+        responseOutput     : ['sqlOnly']
+      };
+
+      new Gopher({"tunnel":dbConnection,"tunnelLibraries":CONNECTIONS})
+        .run(transactionObject,
+          function(err,res){
+            if (err) {return callback(err,res);}
+            return callback(err,res);
+          }
+        );
+    }
+
+   //---------------------------Verbose----------------------------
+
+    exports.runVerbose = function(dbConnection,transactionName,callback){
+
+      let transactionObject = {
+        transaction        : transactionName,
+        responseOutput     : ['verbose']
+      };
+
+      new Gopher({"tunnel":dbConnection,"tunnelLibraries":CONNECTIONS})
+        .run(transactionObject,
+          function(err,res){
+            if (err) {return callback(err,res);}
+            return callback(err,res);
+          }
+        );
+    }
+
+   //------------------------Get Db Tables-------------------------
+
+    exports.getTables = function(dbConnection,callback){
+
+      let transactionObject = {transaction  : 'db-Tables'};
+
+      new Gopher({"tunnel":dbConnection,"tunnelLibraries":CONNECTIONS})
+        .run(transactionObject,
+          function(err,res){
+            if (err) {return callback(err,res);}
+            return callback(err,res);
+          }
+        );
+    }  
+
+   //------------------------Get Db Columns------------------------
+
+    exports.getColumns = function(dbConnection,table,callback){
+
+      let transactionObject = {
+        transaction    : 'db-Columns',
+        bindVariables  : {tableName:table}
+      };
+
+      new Gopher({"tunnel":dbConnection,"tunnelLibraries":CONNECTIONS})
+        .run(transactionObject,
+          function(err,res){
+            if (err)  {return callback(err,res);}
+            return callback(err,res);
+          }
+        );
+    }  
+
+   //--------------------------Modifiable--------------------------
+
+    exports.runModifiable = function(dbConnection,transactionObject,callback){
+
+      new Gopher({"tunnel":dbConnection,"tunnelLibraries":CONNECTIONS})
+        .run(transactionObject,
+          function(err,res){
+            if (err) {return callback(err,res);}
+            return callback(err,res);
+           }
+         );
+     }                  
+  ```
+  #### 2) Some example gopher calls
+  ```  
+"use strict";  
+var gopher = require('./gopher-schema.js');
+
+ //-----------------------------------------------------------------------------//
+ //                          Send Gophers on their way                          //
+ //-----------------------------------------------------------------------------//
+
+   //--------------------Without bind variables--------------------
+
+     let connectTo = 'myDatabase-Prod';
+     let transactionToSend = 'db-Tables';
+
+     gopher.run(connectTo,transactionToSend,
+       function(gophErr, gophRes){
+         if(gophErr){console.log(gophRes);}
+         console.log(gophRes)
+       }
+     );
+
+
+   //---------------------With bind variables---------------------
+
+     let connectTo = 'finance-Prod';
+     let transactionToSend = 'quarterly-report';     
+     let bindVariables = {
+       region     : 'North America',
+       division   : 'Sales',
+       storeID    : '1234'
+
+     };
+
+     gopher.runWBindVariables(connectTo,transactionToSend, bindVariables,
+       function(gophErr, gophRes){
+         if(gophErr){console.log(gophRes);}
+         console.log(gophRes)
+       }
+     );
+
+
+   //---------------------View SQL Statement----------------------
+
+     let connection = 'finance-Prod';
+     let transaction = 'quarterly-report';
+
+     gopher.showSql(connection,transaction,
+       function(gophErr, gophRes){
+         if(gophErr){console.log(gophRes);}
+         console.log(gophRes)
+       }
+     );
+
+   //---------------------View Database Tables---------------------
+
+     let connectTo = 'myDatabase-Prod';
+
+     gopher.getTables(connection',
+       function(gophErr, gophRes){
+         if(gophErr){console.log(gophRes);}
+         console.log(gophRes)
+       }
+     );
+
+   //----------------------View Table Columns----------------------
+
+     let connectTo = 'myDatabase-Prod';
+     let showColumnsFor = 'myFavoriteTable';
+
+
+     gopher.getColumns(connectTo, showColumnsFor
+       function(gophErr, gophRes){
+         if(gophErr){console.log(gophRes);}
+         console.log(gophRes)
+       }
+     );
+
+   //--------------------------Modifiable--------------------------
+
+     let connectTo = 'myDatabase-Prod';
+     let transactionPlan = {
+         transaction       :'quarterly-report'
+        ,bindVariables     :{ region     : 'North America',
+                              division   : 'Sales',
+                              storeID    : '1234'}
+        ,outputFormat      : 'object'
+        ,maxRowsReturned   : 3000
+        ,zeroRowMessage    : 'This quarterly report was not found.'
+        ,responseOutput    : ['host','network','connection','dbStatement','error','dbResponse','metaData','metrics']
+        ,timeZone          : 'local'
+     };
+
+     gopher.runModifiable(connectTo,transactionPlan,
+       function(gophErr, gophRes){
+         if(gophErr){console.log(gophRes);}
+         console.log(gophRes)
+       }
+     );          
+
+  ```

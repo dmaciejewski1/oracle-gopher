@@ -1,7 +1,7 @@
 {
   "name": "oracle-gopher",
-  "version": "0.1.2",
-  "description": "Boilerplate Node.js middleware that facilitates connections and transactions with Oracle databases.",
+  "version": "1.0.0",
+  "description": "Maintain, Organize, Retrieve and Send your database statements from the middle of the stack.",
   "author": {
     "name": "David Maciejewski"
   },
@@ -21,6 +21,7 @@
     "layer",
     "warehouse",
     "information",
+    "transaction",
     "metrics",
     "connect",
     "connection",
@@ -59,14 +60,14 @@
     "12c"
   ],
   "dependencies": {
-    "oracledb": "^1.0.0"
+    "oracledb": "^1.7.1"
   },
   "devDependencies": {
     "mocha": "^2.2.5",
     "chai": "^3.2.0"
   },
   "engines": {
-    "node": ">=0.10.28 <=0.12.7"
+    "node": ">=0.10.28 <=5.6.0"
   },
   "scripts": {
     "test": "mocha"
